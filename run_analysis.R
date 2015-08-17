@@ -66,9 +66,13 @@ activity.names <- c("WALKING", "WALKING_UPSTAIRS","WALKING_DOWNSTAIRS","SITTING"
 data$Activity <- activity.names[data$Activity]
 
 ## Reorder data frame by subject ID and then by activity type.
-#data <- data[order(data$SubjectID, data$Activity), ]
 data <- arrange(data, SubjectID, Activity)
 
+## Generate tidy data set: average of each measurement, for each subject for each activity.
+tidy_data <- data %>% group_by(SubjectID,Activity) %>% summarise_each(funs(mean), -c(SubjectID, Activity))
+
+## Write out tidy data set to text file
+write.table(tidy_data, file = "tidy_data.txt", row.names = FALSE)
 
 
 
