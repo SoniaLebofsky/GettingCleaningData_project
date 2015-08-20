@@ -1,6 +1,4 @@
----
-output: html_document
----
+
 # Codebook for tidy_data dataset
 This is the codebook for the tidy_data dataset obtained from running run_analysis.R.
 The tidy_data dataset is the tidy dataset described in the accomponying README document in this repository.
