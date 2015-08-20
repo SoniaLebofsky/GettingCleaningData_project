@@ -14,16 +14,18 @@ setwd(paste(getwd(), "/test/", sep=""))
 subject_test <- read.table("subject_test.txt")
 X_test <- read.table("X_test.txt")
 y_test <- read.table("y_test.txt")
-setwd("../../")
+setwd("../")
+
+## Read in names of feature columns 
+feature_names <- read.table("features.txt")
+feature_names <- feature_names[,2]
+
+## Extract the indices for the features containing only the means and stds of measurements
+features <- grep("mean\\(\\)|std\\(\\)", feature_names)
 
 ## Extract the only the means and stds of measurements from the X data sets
-X_test <- X_test[ ,c(1:6,41:46,81:86,121:126,161:166,201:202,214:215,227:228,
-                     240:241,253:254,266:271,345:350,424:429,503:504,516:517,
-                     529:530,542:543)]
-
-X_train <- X_train[ ,c(1:6,41:46,81:86,121:126,161:166,201:202,214:215,227:228,
-                     240:241,253:254,266:271,345:350,424:429,503:504,516:517,
-                     529:530,542:543)]
+X_test <- X_test[ ,features]
+X_train <- X_train[ ,features]
 
 ## Merge all data into a single data frame
 test_data <- cbind(subject_test, y_test, X_test)
@@ -33,33 +35,20 @@ data <- rbind(train_data, test_data)
 ## Clean up workspace by removing unused data frames
 rm(subject_test,subject_train,X_test,X_train,y_test,y_train,test_data,train_data)
 
+## Name the columns of the data frame with the appropriate corresponding measurement 
+## and make feature names more descriptive
+feature_names <- feature_names[features]
+feature_names <- sub("^f","freq.",feature_names)
+feature_names <- sub("^t", "time.",feature_names)
+feature_names <- sub("Acc", "Accelerometer",feature_names)
+feature_names <- sub("Gyro", "Gyroscope",feature_names)
+feature_names <- sub("Mag", "Magnitude",feature_names)
+feature_names <- sub("BodyBody", "Body",feature_names)
+feature_names <- sub("\\(\\)", "",feature_names)
+feature_names <- gsub("-", "\\.",feature_names)
+
 ## Name the columns of the data frame with the appropriate corresponding measurement
-colnames(data) <- c("SubjectID", "Activity", 
-                    "time.BodyAccelerometer.X.mean", "time.BodyAccelerometer.Y.mean", "time.BodyAccelerometer.Z.mean",
-                    "time.BodyAccelerometer.X.std", "time.BodyAccelerometer.Y.std", "time.BodyAccelerometer.Z.std",
-                    "time.GravityAccelerometer.X.mean", "time.GravityAccelerometer.Y.mean", "time.GravityAccelerometer.Z.mean",
-                    "time.GravityAccelerometer.X.std", "time.GravityAccelerometer.Y.std", "time.GravityAccelerometer.Z.std",
-                    "time.BodyAccelerometerJerk.X.mean", "time.BodyAccelerometerJerk.Y.mean", "time.BodyAccelerometerJerk.Z.mean",
-                    "time.BodyAccelerometerJerk.X.std", "time.BodyAccelerometerJerk.Y.std", "time.BodyAccelerometerJerk.Z.std",
-                    "time.BodyGyroscope.X.mean", "time.BodyGyroscope.Y.mean", "time.BodyGyroscope.Z.mean",
-                    "time.BodyGyroscope.X.std", "time.BodyGyroscope.Y.std", "time.BodyGyroscope.Z.std",
-                    "time.BodyGyroscopeJerk.X.mean", "time.BodyGyroscopeJerk.Y.mean", "time.BodyGyroscopeJerk.Z.mean",
-                    "time.BodyGyroscopeJerk.X.std", "time.BodyGyroscopeJerk.Y.std", "time.BodyGyroscopeJerk.Z.std",
-                    "time.BodyAccelerometerMagnitude.mean", "time.BodyAccelerometerMagnitude.std",
-                    "time.GravityAccelerometerMagnitude.mean","time.GravityAccelerometerMagnitude.std",
-                    "time.BodyAccelerometerJerkMagnitude.mean", "time.BodyAccelerometerJerkMagnitude.std",
-                    "time.BodyGyroscopeMagnitude.mean", "time.BodyGyroscopeMagnitude.std",
-                    "time.BodyGyroscopeJerkMagnitude.mean", "time.BodyGyroscopeJerkMagnitude.std",
-                    "freq.BodyAccelerometer.X.mean", "freq.BodyAccelerometer.Y.mean", "freq.BodyAccelerometer.Z.mean",
-                    "freq.BodyAccelerometer.X.std", "freq.BodyAccelerometer.Y.std", "freq.BodyAccelerometer.Z.std",
-                    "freq.BodyAccelerometerJerk.X.mean", "freq.BodyAccelerometerJerk.Y.mean", "freq.BodyAccelerometerJerk.Z.mean",
-                    "freq.BodyAccelerometerJerk.X.std", "freq.BodyAccelerometerJerk.Y.std", "freq.BodyAccelerometerJerk.Z.std",
-                    "freq.BodyGyroscope.X.mean", "freq.BodyGyroscope.Y.mean", "freq.BodyGyroscope.Z.mean",
-                    "freq.BodyGyroscope.X.std", "freq.BodyGyroscope.Y.std", "freq.BodyGyroscope.Z.std",
-                    "freq.BodyAccelerometerMagnitude.mean", "freq.BodyAccelerometerMagnitude.std",
-                    "freq.BodyAccelerometerJerkMagnitude.mean", "freq.BodyAccelerometerJerkMagnitude.std",
-                    "freq.BodyGyroscopeMagnitude.mean", "freq.BodyGyroscopeMagnitude.std",
-                    "freq.BodyGyroscopeJerkMagnitude.mean", "freq.BodyGyroscopeJerkMagnitude.std")
+colnames(data) <- c("SubjectID", "Activity", feature_names)
 
 ## Relabel Activity with descriptive activity name
 activity.names <- c("WALKING", "WALKING_UPSTAIRS","WALKING_DOWNSTAIRS","SITTING","STANDING","LAYING")
@@ -71,7 +60,11 @@ data <- arrange(data, SubjectID, Activity)
 ## Generate tidy data set: average of each measurement, for each subject for each activity.
 tidy_data <- data %>% group_by(SubjectID,Activity) %>% summarise_each(funs(mean), -c(SubjectID, Activity))
 
+## Add "mean" to column names to indicate the data is the average of original data
+names(tidy_data)[3:length(names(tidy_data))] <- paste("mean", names(tidy_data)[3:length(names(tidy_data))], sep = ".")
+
 ## Write out tidy data set to text file
+setwd("../")
 write.table(tidy_data, file = "tidy_data.txt", row.names = FALSE)
 
 
